@@ -16,9 +16,13 @@ function timeAgo(iso: string) {
 
 // 카드 하단에 노출할 핵심 2줄 추출 (타입별 분기)
 function getBullets(item: Item): string[] {
+  // analysis가 없으면 summary_line을 fallback으로 사용
+  if (!item.analysis) {
+    return item.summary_line ? [item.summary_line] : []
+  }
   const a = item.analysis as unknown as Record<string, unknown>
   if (item.content_type === 'shopping') {
-    const price = a.price ? `${a.retailer ?? ''} · ${a.price}` : (a.retailer as string ?? '')
+    const price = (a.price || a.retailer) ? `${a.retailer ?? ''} · ${a.price ?? ''}`.trim().replace(/^·\s*|·\s*$/, '') : ''
     const feat = Array.isArray(a.highlights) ? (a.highlights as string[])[0] : ''
     return [price, feat].filter(Boolean)
   }
@@ -31,7 +35,7 @@ function getBullets(item: Item): string[] {
     const pts = Array.isArray(a.key_points) ? a.key_points as string[] : []
     return pts.slice(0, 2)
   }
-  return []
+  return item.summary_line ? [item.summary_line] : []
 }
 
 export default function FeedCard({ item, onClick }: { item: Item; onClick: (id: string) => void }) {

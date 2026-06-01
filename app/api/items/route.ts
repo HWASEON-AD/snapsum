@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('items')
-    .select('id,source_app,content_type,title,url,thumbnail_url,tags,summary_line,created_at', { count: 'exact' })
+    .select('id,source_app,content_type,title,url,thumbnail_url,tags,summary_line,analysis,created_at', { count: 'exact' })
     .eq('user_id', user_id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
