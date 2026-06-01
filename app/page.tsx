@@ -22,7 +22,7 @@ export default function FeedPage() {
     setError(null)
     try {
       const url = `/api/items?user_id=default&type=${type}`
-      const res = await fetch(url, { headers: { 'x-api-key': process.env.NEXT_PUBLIC_SNAPSUM_API_KEY ?? '' } })
+      const res = await fetch(url)
       const json = await res.json()
       if (!json.success) throw new Error('Failed to load')
       setItems(json.data)

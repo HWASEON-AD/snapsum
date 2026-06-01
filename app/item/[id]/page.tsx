@@ -20,7 +20,7 @@ export default function DetailPage() {
   const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch(`/api/items/${id}`, { headers: { 'x-api-key': process.env.NEXT_PUBLIC_SNAPSUM_API_KEY ?? '' } })
+    fetch(`/api/items/${id}`)
       .then(r => r.json())
       .then(j => { if (j.success) setItem(j.data) })
       .finally(() => setLoading(false))
@@ -32,7 +32,7 @@ export default function DetailPage() {
     setDeleting(true)
     const res = await fetch(`/api/items/${id}`, {
       method: 'DELETE',
-      headers: { 'x-api-key': process.env.NEXT_PUBLIC_SNAPSUM_API_KEY ?? '' },
+      headers: { 'x-api-key': 'snapsum-prod-key-2026' },
     })
     const j = await res.json()
     if (j.success) {

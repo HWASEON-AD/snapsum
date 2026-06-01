@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
-// API 키 인증 검사
-function authOk(req: NextRequest) {
-  return req.headers.get('x-api-key') === process.env.SNAPSUM_API_KEY
+// 모바일(iOS/Android) 키 인증 — 웹 브라우저는 키 없이 허용 (MVP)
+function isMobileAuth(req: NextRequest) {
+  const key = req.headers.get('x-api-key')
+  return !key || key === process.env.SNAPSUM_API_KEY
 }
 
 export async function GET(req: NextRequest) {
-  if (!authOk(req)) {
+  if (!isMobileAuth(req)) {
     return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
   }
 
