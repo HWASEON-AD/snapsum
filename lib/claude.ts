@@ -1,8 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { AnalysisResult } from './types'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
 const SYSTEM_PROMPT = `You are SnapSum AI, a screenshot analysis assistant.
 
 Analyze the provided screenshot and return a structured JSON response.
@@ -33,17 +31,29 @@ OUTPUT — always return valid JSON only, no markdown fences:
 
 If content is unrecognizable return: {"error":"unrecognized","message":"Could not analyze screenshot content"}`
 
+function getClient() {
+  const key = (process.env.ANTHROPIC_API_KEY ?? '').trim()
+  return new Anthropic({ apiKey: key })
+}
+
 export async function analyzeScreenshot(
   imageBase64: string,
   imageType: string,
   appHint?: string
 ): Promise<AnalysisResult> {
+  const client = getClient()
+
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  const safeType = validTypes.includes(imageType)
+    ? (imageType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif')
+    : 'image/png'
+
   const userContent: Anthropic.MessageParam['content'] = [
     {
       type: 'image',
       source: {
         type: 'base64',
-        media_type: imageType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+        media_type: safeType,
         data: imageBase64,
       },
     },
@@ -66,10 +76,11 @@ export async function analyzeScreenshot(
           text: SYSTEM_PROMPT,
           cache_control: { type: 'ephemeral' },
         },
-      ],
+      ] as Anthropic.TextBlockParam[],
       messages: [{ role: 'user', content: userContent }],
     })
-  } catch {
+  } catch (e) {
+    console.error('[SnapSum] Claude API error:', e instanceof Error ? e.message : String(e))
     throw new Error('CLAUDE_API_ERROR')
   }
 
@@ -77,11 +88,13 @@ export async function analyzeScreenshot(
 
   let parsed: Record<string, unknown>
   try {
-    parsed = JSON.parse(raw)
+    // JSON 코드펜스 제거 후 파싱
+    const cleaned = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
+    parsed = JSON.parse(cleaned)
   } catch {
-    // 재시도 1회 — Claude가 비정형 응답을 반환한 경우 JSON만 다시 요청
     try {
-      const retry = await client.messages.create({
+      const client2 = getClient()
+      const retry = await client2.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: [
@@ -90,7 +103,7 @@ export async function analyzeScreenshot(
             text: SYSTEM_PROMPT,
             cache_control: { type: 'ephemeral' },
           },
-        ],
+        ] as Anthropic.TextBlockParam[],
         messages: [
           { role: 'user', content: userContent },
           { role: 'assistant', content: raw },
@@ -98,8 +111,10 @@ export async function analyzeScreenshot(
         ],
       })
       const retryRaw = retry.content[0].type === 'text' ? retry.content[0].text : ''
-      parsed = JSON.parse(retryRaw)
+      const cleaned2 = retryRaw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
+      parsed = JSON.parse(cleaned2)
     } catch {
+      console.error('[SnapSum] JSON parse failed after retry. raw:', raw.slice(0, 200))
       throw new Error('PARSE_ERROR')
     }
   }
