@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { analyzeScreenshot } from '@/lib/claude'
 import { supabaseAdmin } from '@/lib/supabase'
 
+export const maxDuration = 60 // Claude Vision 분석 시간 확보
+
 // 웹 업로드 전용 엔드포인트 — x-api-key 불필요 (PWA 웹 클라이언트용)
 // 모바일(iOS Shortcut/Android)은 /api/analyze + x-api-key 사용
 export async function POST(req: NextRequest) {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { analyzeScreenshot } from '@/lib/claude'
 import { supabaseAdmin } from '@/lib/supabase'
 
+export const maxDuration = 60
+
 // API 키 인증 검사
 function authOk(req: NextRequest) {
   const key = req.headers.get('x-api-key')
